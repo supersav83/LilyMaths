@@ -42,7 +42,20 @@
 
         .stars {
             font-size: 1.4rem;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #ff9f1a;
+        }
+
+        .milestone-tracker {
+            font-size: 0.95rem;
+            color: #747d8c;
+            background: #fff0f5;
+            padding: 6px 12px;
+            border-radius: 12px;
+            display: inline-block;
             margin-bottom: 15px;
+            font-weight: 600;
         }
 
         .question-box {
@@ -131,6 +144,7 @@
             background: rgba(0,0,0,0.6);
             justify-content: center;
             align-items: center;
+            z-index: 10;
         }
 
         .modal-content {
@@ -170,6 +184,7 @@
 <div class="card">
     <h1>⭐ Times Tables Quest ⭐</h1>
     <div class="stars" id="starContainer">Total Stars: 0 ⭐</div>
+    <div class="milestone-tracker" id="milestoneTracker">Next Mega Prize at 100 Stars! 🍔</div>
     <div class="progress-bar" id="progressText">Question 1 of 10</div>
 
     <div class="question-box" id="question">? × ?</div>
@@ -186,7 +201,7 @@
     <div class="feedback" id="feedback"></div>
 </div>
 
-<!-- Reward Modal -->
+<!-- Round Reward Modal -->
 <div class="modal" id="rewardModal">
     <div class="modal-content">
         <div class="prize-title" id="prizeTitle">🎉 Round Complete!</div>
@@ -195,22 +210,66 @@
     </div>
 </div>
 
+<!-- Big Milestone Star Modal -->
+<div class="modal" id="milestoneModal">
+    <div class="modal-content" style="border: 4px solid #ff4757;">
+        <div class="prize-title" style="color: #ff4757;">🌟 MEGA MILESTONE UNLOCKED! 🌟</div>
+        <p id="milestoneDescription" style="font-size: 1.3rem; font-weight: bold; white-space: pre-line;"></p>
+        <button class="modal-btn" style="background: #ff4757;" onclick="closeMilestoneModal()">AWESOME!</button>
+    </div>
+</div>
+
 <script>
     let num1, num2, correctAnswer;
     let currentQuestion = 1;
     let roundScore = 0;
-    let totalStars = 0;
+    
+    // Load saved stars from local storage or start at 0
+    let totalStars = parseInt(localStorage.getItem('totalStars')) || 0;
+    let claimedMilestones = JSON.parse(localStorage.getItem('claimedMilestones')) || [];
 
-    // Dad's Prizes List
-    const prizes = [
+    // Per-round Prizes (Sets of 10)
+    const roundPrizes = [
         { score: 10, prize: "🎁 Perfect 10/10!\nYou unlocked: Extra 15 mins stay up time / Tablet time!" },
         { score: 9,  prize: "🍦 9/10 Great job!\nYou unlocked: An Ice Cream or Treat!" },
         { score: 8,  prize: "⭐ 8/10 Well done!\nYou unlocked: Pick tonight's movie or game!" },
         { score: 7,  prize: "👍 7/10 Good effort!\nKeep going to get the bigger prizes!" }
     ];
 
+    // Cumulative Star Milestone Rewards
+    const milestoneRewards = [
+        { stars: 100, reward: "🍔 100 STARS REACHED! 🍔\n\nYou unlocked a Trip to McDonald's!" },
+        { stars: 200, reward: "🍿 200 STARS REACHED! 🍿\n\nYou unlocked a Cinema Trip!" },
+        { stars: 300, reward: "🎡 300 STARS REACHED! 🎡\n\nYou unlocked a Fun Day Out!" }
+    ];
+
+    function updateStarDisplay() {
+        document.getElementById('starContainer').innerText = `Total Stars: ${totalStars} ⭐`;
+        
+        // Find next unlocked milestone for tracker
+        let nextMilestone = milestoneRewards.find(m => totalStars < m.stars);
+        if (nextMilestone) {
+            document.getElementById('milestoneTracker').innerText = `Next Mega Prize at ${nextMilestone.stars} Stars! (${nextMilestone.stars - totalStars} to go!)`;
+        } else {
+            document.getElementById('milestoneTracker').innerText = `🌟 You've unlocked ALL Mega Rewards! Master Mathematician! 🌟`;
+        }
+    }
+
+    function checkMilestoneRewards() {
+        for (let m of milestoneRewards) {
+            if (totalStars >= m.stars && !claimedMilestones.includes(m.stars)) {
+                claimedMilestones.push(m.stars);
+                localStorage.setItem('claimedMilestones', JSON.stringify(claimedMilestones));
+                
+                document.getElementById('milestoneDescription').innerText = m.reward;
+                document.getElementById('milestoneModal').style.display = 'flex';
+                return true; // Pause execution to show modal
+            }
+        }
+        return false;
+    }
+
     function getHint(a, b) {
-        // Pick whichever number has a specific trick, prioritizing the easier strategy
         const target = (a === 9 || b === 9) ? 9 :
                        (a === 5 || b === 5) ? 5 :
                        (a === 10 || b === 10) ? 10 :
@@ -226,27 +285,27 @@
             case 1:
                 return " Anything times 1 stays the exact same number!";
             case 2:
-                return ` Just double ${other}! (${other} +${other})`;
+                return ` Just double ${other}! (${other} + ${other})`;
             case 3:
-                return ` Double ${other}, then add one more${other}!`;
+                return ` Double ${other}, then add one more ${other}!`;
             case 4:
                 return ` Double ${other}, then double it again!`;
             case 5:
-                return ` Multiply ${other} by 10 (which is${other * 10}), then cut it in half! (Or count in 5s: 5, 10, 15...)`;
+                return ` Multiply ${other} by 10 (which is ${other * 10}), then cut it in half! (Or count in 5s: 5, 10, 15...)`;
             case 6:
-                return ` Multiply ${other} by 5, then add one more${other}!`;
+                return ` Multiply ${other} by 5, then add one more ${other}!`;
             case 7:
                 return ` Multiply ${other} by 5, then add (${other} × 2)!`;
             case 8:
                 return ` Double ${other}, double it again, and double it one more time!`;
             case 9:
-                return ` <b>Trick 1:</b> Multiply ${other} by 10 (which is${other * 10}), then subtract ${other}!<br><b>Trick 2 (Fingers):</b> Hold out 10 fingers, fold down finger number${other}. Count fingers on the left for tens, right for units!`;
+                return ` <b>Trick 1:</b> Multiply ${other} by 10 (which is ${other * 10}), then subtract ${other}!<br><b>Trick 2 (Fingers):</b> Hold out 10 fingers, fold down finger number ${other}. Count fingers on the left for tens, right for units!`;
             case 10:
-                return ` Just put a 0 on the end of ${other}! (${other} ➔${other}0)`;
+                return ` Just put a 0 on the end of ${other}! (${other} ➔ ${other}0)`;
             case 11:
                 return (other < 10) 
                     ? ` Repeat the digit twice! (${other} becomes ${other}${other})` 
-                    : ` Multiply ${other} by 10 (which is ${other * 10}), then add${other}!`;
+                    : ` Multiply ${other} by 10 (which is ${other * 10}), then add ${other}!`;
             case 12:
                 return ` Multiply ${other} by 10, then add (${other} × 2)!`;
             default:
@@ -259,7 +318,7 @@
         num2 = Math.floor(Math.random() * 12) + 1;
         correctAnswer = num1 * num2;
         
-        document.getElementById('question').innerText = `${num1} ×${num2}`;
+        document.getElementById('question').innerText = `${num1} × ${num2}`;
         document.getElementById('userAnswer').value = '';
         document.getElementById('hintBox').style.display = 'none';
         document.getElementById('hintBox').innerHTML = getHint(num1, num2);
@@ -268,11 +327,7 @@
 
     function toggleHint() {
         const hintBox = document.getElementById('hintBox');
-        if (hintBox.style.display === 'block') {
-            hintBox.style.display = 'none';
-        } else {
-            hintBox.style.display = 'block';
-        }
+        hintBox.style.display = (hintBox.style.display === 'block') ? 'none' : 'block';
     }
 
     function checkAnswer(e) {
@@ -284,21 +339,27 @@
         if (userAns === correctAnswer) {
             roundScore++;
             totalStars++;
+            localStorage.setItem('totalStars', totalStars);
             feedback.className = "feedback correct";
             feedback.innerText = "🌟 Correct! Brilliant!";
         } else {
             feedback.className = "feedback wrong";
-            feedback.innerText = `❌ Oops! ${num1} × ${num2} =${correctAnswer}`;
+            feedback.innerText = `❌ Oops! ${num1} × ${num2} = ${correctAnswer}`;
         }
 
-        document.getElementById('starContainer').innerText = `Total Stars: ${totalStars} ⭐`;
+        updateStarDisplay();
 
-        if (currentQuestion < 10) {
-            currentQuestion++;
-            document.getElementById('progressText').innerText = `Question ${currentQuestion} of 10`;
-            setTimeout(generateQuestion, 1400);
-        } else {
-            setTimeout(finishRound, 1400);
+        // Check if hitting a major star milestone immediately
+        const hitMilestone = checkMilestoneRewards();
+
+        if (!hitMilestone) {
+            if (currentQuestion < 10) {
+                currentQuestion++;
+                document.getElementById('progressText').innerText = `Question ${currentQuestion} of 10`;
+                setTimeout(generateQuestion, 1400);
+            } else {
+                setTimeout(finishRound, 1400);
+            }
         }
     }
 
@@ -307,7 +368,7 @@
         const title = document.getElementById('prizeTitle');
         const desc = document.getElementById('prizeDescription');
 
-        let wonPrize = prizes.find(p => roundScore >= p.score);
+        let wonPrize = roundPrizes.find(p => roundScore >= p.score);
 
         if (wonPrize) {
             title.innerText = "🏆 PRIZE UNLOCKED!";
@@ -329,7 +390,19 @@
         generateQuestion();
     }
 
-    // Start first question
+    function closeMilestoneModal() {
+        document.getElementById('milestoneModal').style.display = 'none';
+        if (currentQuestion < 10) {
+            currentQuestion++;
+            document.getElementById('progressText').innerText = `Question ${currentQuestion} of 10`;
+            generateQuestion();
+        } else {
+            finishRound();
+        }
+    }
+
+    // Initialize display & first question
+    updateStarDisplay();
     generateQuestion();
 </script>
 
