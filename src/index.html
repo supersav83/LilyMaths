@@ -7,7 +7,7 @@
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #a8edd liquid, #fed6e3, #d4fc79);
+            background: linear-gradient(135deg, #a8edd8, #fed6e3, #d4fc79);
             background-attachment: fixed;
             display: flex;
             justify-content: center;
@@ -30,17 +30,18 @@
         h1 {
             color: #ff4757;
             margin-top: 0;
+            margin-bottom: 10px;
         }
 
         .progress-bar {
             font-size: 1.1rem;
             color: #57606f;
-            margin-bottom: 15px;
+            margin-bottom: 10px;
             font-weight: bold;
         }
 
         .stars {
-            font-size: 1.5rem;
+            font-size: 1.4rem;
             margin-bottom: 15px;
         }
 
@@ -51,7 +52,7 @@
             background: #f1f2f6;
             padding: 20px;
             border-radius: 15px;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
         }
 
         input[type="number"] {
@@ -84,10 +85,38 @@
             transform: scale(1.05);
         }
 
+        .hint-btn {
+            background: #ffa502;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 15px;
+        }
+
+        .hint-btn:hover {
+            background: #eccc68;
+        }
+
+        .hint-box {
+            display: none;
+            background: #eccc6833;
+            border: 2px dashed #ffa502;
+            border-radius: 10px;
+            padding: 10px;
+            margin-top: 10px;
+            font-size: 0.95rem;
+            color: #57606f;
+            text-align: left;
+        }
+
         .feedback {
             font-size: 1.3rem;
             font-weight: bold;
-            height: 30px;
+            min-height: 30px;
             margin-top: 15px;
         }
 
@@ -150,6 +179,10 @@
         <button type="submit" class="submit-btn">Go!</button>
     </form>
 
+    <br>
+    <button type="button" class="hint-btn" onclick="toggleHint()">💡 Need a Hint?</button>
+    <div class="hint-box" id="hintBox"></div>
+
     <div class="feedback" id="feedback"></div>
 </div>
 
@@ -157,7 +190,7 @@
 <div class="modal" id="rewardModal">
     <div class="modal-content">
         <div class="prize-title" id="prizeTitle">🎉 Round Complete!</div>
-        <p id="prizeDescription" style="font-size: 1.2rem;"></p>
+        <p id="prizeDescription" style="font-size: 1.2rem; white-space: pre-line;"></p>
         <button class="modal-btn" onclick="closeModal()">Start Next Round!</button>
     </div>
 </div>
@@ -168,22 +201,78 @@
     let roundScore = 0;
     let totalStars = 0;
 
-    // Dad's Prizes List (You can edit these prizes and scores!)
+    // Dad's Prizes List
     const prizes = [
-        { score: 10, prize: "🎁 Perfect 10/10! You unlocked: Extra 15 mins stay up time / Tablet time!" },
-        { score: 9,  prize: "🍦 9/10 Great job! You unlocked: A Ice Cream / Treat!" },
-        { score: 8,  prize: "⭐ 8/10 Well done! You unlocked: Pick tonight's movie or game!" },
-        { score: 7,  prize: "👍 7/10 Good effort! Keep going to get the bigger prizes!" }
+        { score: 10, prize: "🎁 Perfect 10/10!\nYou unlocked: Extra 15 mins stay up time / Tablet time!" },
+        { score: 9,  prize: "🍦 9/10 Great job!\nYou unlocked: An Ice Cream or Treat!" },
+        { score: 8,  prize: "⭐ 8/10 Well done!\nYou unlocked: Pick tonight's movie or game!" },
+        { score: 7,  prize: "👍 7/10 Good effort!\nKeep going to get the bigger prizes!" }
     ];
 
+    function getHint(a, b) {
+        // Pick whichever number has a specific trick, prioritizing the easier strategy
+        const target = (a === 9 || b === 9) ? 9 :
+                       (a === 5 || b === 5) ? 5 :
+                       (a === 10 || b === 10) ? 10 :
+                       (a === 11 || b === 11) ? 11 :
+                       (a === 4 || b === 4) ? 4 :
+                       (a === 8 || b === 8) ? 8 :
+                       (a === 6 || b === 6) ? 6 :
+                       (a === 12 || b === 12) ? 12 : a;
+
+        const other = (target === a) ? b : a;
+
+        switch(target) {
+            case 1:
+                return " Anything times 1 stays the exact same number!";
+            case 2:
+                return ` Just double ${other}! (${other} +${other})`;
+            case 3:
+                return ` Double ${other}, then add one more${other}!`;
+            case 4:
+                return ` Double ${other}, then double it again!`;
+            case 5:
+                return ` Multiply ${other} by 10 (which is${other * 10}), then cut it in half! (Or count in 5s: 5, 10, 15...)`;
+            case 6:
+                return ` Multiply ${other} by 5, then add one more${other}!`;
+            case 7:
+                return ` Multiply ${other} by 5, then add (${other} × 2)!`;
+            case 8:
+                return ` Double ${other}, double it again, and double it one more time!`;
+            case 9:
+                return ` <b>Trick 1:</b> Multiply ${other} by 10 (which is${other * 10}), then subtract ${other}!<br><b>Trick 2 (Fingers):</b> Hold out 10 fingers, fold down finger number${other}. Count fingers on the left for tens, right for units!`;
+            case 10:
+                return ` Just put a 0 on the end of ${other}! (${other} ➔${other}0)`;
+            case 11:
+                return (other < 10) 
+                    ? ` Repeat the digit twice! (${other} becomes ${other}${other})` 
+                    : ` Multiply ${other} by 10 (which is ${other * 10}), then add${other}!`;
+            case 12:
+                return ` Multiply ${other} by 10, then add (${other} × 2)!`;
+            default:
+                return " Break it down into smaller parts!";
+        }
+    }
+
     function generateQuestion() {
-        num1 = Math.floor(Math.random() * 12) + 1; // 1 to 12
-        num2 = Math.floor(Math.random() * 12) + 1; // 1 to 12
+        num1 = Math.floor(Math.random() * 12) + 1;
+        num2 = Math.floor(Math.random() * 12) + 1;
         correctAnswer = num1 * num2;
         
-        document.getElementById('question').innerText = `${num1} × ${num2}`;
+        document.getElementById('question').innerText = `${num1} ×${num2}`;
         document.getElementById('userAnswer').value = '';
+        document.getElementById('hintBox').style.display = 'none';
+        document.getElementById('hintBox').innerHTML = getHint(num1, num2);
         document.getElementById('userAnswer').focus();
+    }
+
+    function toggleHint() {
+        const hintBox = document.getElementById('hintBox');
+        if (hintBox.style.display === 'block') {
+            hintBox.style.display = 'none';
+        } else {
+            hintBox.style.display = 'block';
+        }
     }
 
     function checkAnswer(e) {
@@ -199,7 +288,7 @@
             feedback.innerText = "🌟 Correct! Brilliant!";
         } else {
             feedback.className = "feedback wrong";
-            feedback.innerText = `❌ Oops! ${num1} × ${num2} = ${correctAnswer}`;
+            feedback.innerText = `❌ Oops! ${num1} × ${num2} =${correctAnswer}`;
         }
 
         document.getElementById('starContainer').innerText = `Total Stars: ${totalStars} ⭐`;
@@ -207,9 +296,9 @@
         if (currentQuestion < 10) {
             currentQuestion++;
             document.getElementById('progressText').innerText = `Question ${currentQuestion} of 10`;
-            setTimeout(generateQuestion, 1200);
+            setTimeout(generateQuestion, 1400);
         } else {
-            setTimeout(finishRound, 1200);
+            setTimeout(finishRound, 1400);
         }
     }
 
@@ -225,7 +314,7 @@
             desc.innerText = `You scored ${roundScore}/10!\n\n${wonPrize.prize}`;
         } else {
             title.innerText = "Nice Try!";
-            desc.innerText = `You scored ${roundScore}/10. Score 7 or more in the next set to win a prize from Dad!`;
+            desc.innerText = `You scored ${roundScore}/10.\nScore 7 or more in the next set to win a prize from Dad!`;
         }
 
         modal.style.display = 'flex';
@@ -246,3 +335,4 @@
 
 </body>
 </html>
+
