@@ -246,7 +246,6 @@
     function updateStarDisplay() {
         document.getElementById('starContainer').innerText = `Total Stars: ${totalStars} ⭐`;
         
-        // Find next unlocked milestone for tracker
         let nextMilestone = milestoneRewards.find(m => totalStars < m.stars);
         if (nextMilestone) {
             document.getElementById('milestoneTracker').innerText = `Next Mega Prize at ${nextMilestone.stars} Stars! (${nextMilestone.stars - totalStars} to go!)`;
@@ -263,7 +262,7 @@
                 
                 document.getElementById('milestoneDescription').innerText = m.reward;
                 document.getElementById('milestoneModal').style.display = 'flex';
-                return true; // Pause execution to show modal
+                return true;
             }
         }
         return false;
@@ -338,8 +337,6 @@
 
         if (userAns === correctAnswer) {
             roundScore++;
-            totalStars++;
-            localStorage.setItem('totalStars', totalStars);
             feedback.className = "feedback correct";
             feedback.innerText = "🌟 Correct! Brilliant!";
         } else {
@@ -347,19 +344,12 @@
             feedback.innerText = `❌ Oops! ${num1} × ${num2} = ${correctAnswer}`;
         }
 
-        updateStarDisplay();
-
-        // Check if hitting a major star milestone immediately
-        const hitMilestone = checkMilestoneRewards();
-
-        if (!hitMilestone) {
-            if (currentQuestion < 10) {
-                currentQuestion++;
-                document.getElementById('progressText').innerText = `Question ${currentQuestion} of 10`;
-                setTimeout(generateQuestion, 1400);
-            } else {
-                setTimeout(finishRound, 1400);
-            }
+        if (currentQuestion < 10) {
+            currentQuestion++;
+            document.getElementById('progressText').innerText = `Question ${currentQuestion} of 10`;
+            setTimeout(generateQuestion, 1400);
+        } else {
+            setTimeout(finishRound, 1400);
         }
     }
 
@@ -368,17 +358,28 @@
         const title = document.getElementById('prizeTitle');
         const desc = document.getElementById('prizeDescription');
 
-        let wonPrize = roundPrizes.find(p => roundScore >= p.score);
+        let hitMilestone = false;
 
-        if (wonPrize) {
+        // Threshold check: Must score 7 or higher to earn stars for total
+        if (roundScore >= 7) {
+            totalStars += roundScore;
+            localStorage.setItem('totalStars', totalStars);
+            updateStarDisplay();
+
+            let wonPrize = roundPrizes.find(p => roundScore >= p.score);
             title.innerText = "🏆 PRIZE UNLOCKED!";
-            desc.innerText = `You scored ${roundScore}/10!\n\n${wonPrize.prize}`;
+            desc.innerText = `You scored ${roundScore}/10!\nYou earned +${roundScore} Stars! ⭐\n\n${wonPrize.prize}`;
+
+            // Check if adding these stars unlocks a Mega Milestone
+            hitMilestone = checkMilestoneRewards();
         } else {
             title.innerText = "Nice Try!";
-            desc.innerText = `You scored ${roundScore}/10.\nScore 7 or more in the next set to win a prize from Dad!`;
+            desc.innerText = `You scored ${roundScore}/10.\n\nYou need at least 7/10 to collect stars and win a prize from Dad. Keep practicing!`;
         }
 
-        modal.style.display = 'flex';
+        if (!hitMilestone) {
+            modal.style.display = 'flex';
+        }
     }
 
     function closeModal() {
@@ -392,13 +393,8 @@
 
     function closeMilestoneModal() {
         document.getElementById('milestoneModal').style.display = 'none';
-        if (currentQuestion < 10) {
-            currentQuestion++;
-            document.getElementById('progressText').innerText = `Question ${currentQuestion} of 10`;
-            generateQuestion();
-        } else {
-            finishRound();
-        }
+        // Open the round modal after acknowledging the mega milestone
+        document.getElementById('rewardModal').style.display = 'flex';
     }
 
     // Initialize display & first question
@@ -408,4 +404,3 @@
 
 </body>
 </html>
-
