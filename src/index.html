@@ -558,6 +558,7 @@
         let hitMilestone = false;
 
         if (roundScore >= 7) {
+            // Earn Stars for 7, 8, 9, 10
             totalStars += roundScore;
             localStorage.setItem('totalStars', totalStars);
             updateStarDisplay();
@@ -567,9 +568,19 @@
             desc.innerText = `You scored ${roundScore}/10!\nYou earned +${roundScore} Stars! ⭐\n\n${wonPrize.prize}`;
 
             hitMilestone = checkMilestoneRewards();
-        } else {
+        } else if (roundScore === 6) {
+            // Safe zone: no stars won or lost
             title.innerText = "Nice Try!";
-            desc.innerText = `You scored ${roundScore}/10.\n\nYou need at least 7/10 to collect stars and win a prize from Dad. Keep practicing!`;
+            desc.innerText = `You scored 6/10.\n\nNo stars lost, but you need at least 7/10 to win stars and prizes from Dad!`;
+        } else {
+            // Penalty: lose (6 - score) stars
+            let starsLost = 6 - roundScore;
+            totalStars = Math.max(0, totalStars - starsLost); // Prevent dropping below 0
+            localStorage.setItem('totalStars', totalStars);
+            updateStarDisplay();
+
+            title.innerText = "⚠️ OH NO!";
+            desc.innerText = `You scored ${roundScore}/10.\n\nScoring under 6 cost you -${starsLost} Star${starsLost > 1 ? 's' : ''}! 💔\n\nKeep practicing to earn them back!`;
         }
 
         if (!hitMilestone) {
